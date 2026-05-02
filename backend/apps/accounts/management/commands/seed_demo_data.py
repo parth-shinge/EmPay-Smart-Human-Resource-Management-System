@@ -50,6 +50,29 @@ class Command(BaseCommand):
         leave_requests = self._seed_leave_requests(users, leave_types)
         self._seed_attendance_records(users, leave_requests)
         self._seed_payrun_and_payslips(org, users)
+        self._seed_bulk_employees(org)
+
+        # ------------------------------------------------------------------
+        # Final department breakdown
+        # ------------------------------------------------------------------
+        from django.db.models import Count
+
+        self.stdout.write("")
+        self.stdout.write(self.style.MIGRATE_HEADING("Department breakdown:"))
+        dept_stats = (
+            User.objects.filter(organization=org)
+            .exclude(department__isnull=True)
+            .exclude(department="")
+            .values("department")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+        )
+        for d in dept_stats:
+            self.stdout.write(
+                f"  {d['department']:<22} → {d['count']} employees"
+            )
+        total = User.objects.filter(organization=org).count()
+        self.stdout.write(f"  Total employees: {total}")
 
         self.stdout.write("")
         self.stdout.write(self.style.SUCCESS("=" * 60))
@@ -541,8 +564,141 @@ class Command(BaseCommand):
             )
 
     # ------------------------------------------------------------------
+    # 9. Bulk Employee Generation (400 employees)
+    # ------------------------------------------------------------------
+    def _seed_bulk_employees(self, org):
+        self.stdout.write(self.style.HTTP_INFO("▸ Creating bulk employees..."))
+
+        FIRST_NAMES = [
+            "Aarav", "Aditi", "Akash", "Amit", "Anjali", "Arjun", "Deepa", "Deepak",
+            "Divya", "Gaurav", "Geeta", "Harsh", "Ishaan", "Kavya", "Kiran", "Komal",
+            "Lakshmi", "Manish", "Meera", "Mohit", "Neha", "Nikhil", "Nisha", "Pooja",
+            "Pradeep", "Prakash", "Priya", "Rahul", "Rajesh", "Ravi", "Rekha", "Rohit",
+            "Sachin", "Sanjay", "Sangeeta", "Sunil", "Sunita", "Suresh", "Swati",
+            "Tanvi", "Tushar", "Uday", "Vandana", "Varun", "Vinod", "Vishal",
+            "Yogesh", "Zara", "Aisha", "Farhan", "Imran", "Riya", "Simran", "Tanya",
+            "Ananya", "Bhavna", "Chetan", "Dhruv", "Ekta", "Faiz", "Girish", "Harsha",
+        ]
+
+        LAST_NAMES = [
+            "Sharma", "Verma", "Patel", "Singh", "Kumar", "Gupta", "Joshi", "Mehta",
+            "Shah", "Reddy", "Nair", "Pillai", "Rao", "Iyer", "Menon", "Krishnan",
+            "Mishra", "Tiwari", "Pandey", "Dubey", "Chauhan", "Rajput", "Yadav", "Mali",
+            "Jain", "Agarwal", "Bansal", "Goel", "Mittal", "Kapoor", "Malhotra", "Khanna",
+            "Bose", "Das", "Mukherjee", "Chatterjee", "Ghosh", "Sengupta", "Roy", "Dey",
+        ]
+
+        DEPARTMENTS = [
+            "Engineering", "Engineering", "Engineering",
+            "Product", "Design", "Marketing", "Sales",
+            "Human Resources", "Finance", "Operations",
+            "Customer Support", "Legal", "Administration",
+        ]
+
+        DESIGNATIONS_BY_DEPT = {
+            "Engineering": ["Software Engineer", "Senior Software Engineer", "Tech Lead", "Backend Developer", "Frontend Developer", "DevOps Engineer", "QA Engineer", "Data Engineer"],
+            "Product": ["Product Manager", "Senior Product Manager", "Associate PM", "Product Analyst"],
+            "Design": ["UI Designer", "UX Designer", "Senior Designer", "Design Lead", "Visual Designer"],
+            "Marketing": ["Marketing Executive", "Digital Marketing Manager", "Content Writer", "SEO Specialist", "Brand Manager"],
+            "Sales": ["Sales Executive", "Senior Sales Manager", "Account Manager", "Business Development Executive"],
+            "Human Resources": ["HR Executive", "HR Manager", "Talent Acquisition Specialist", "HR Business Partner"],
+            "Finance": ["Financial Analyst", "Accountant", "Senior Accountant", "Finance Manager", "Payroll Specialist"],
+            "Operations": ["Operations Executive", "Operations Manager", "Process Analyst", "Supply Chain Manager"],
+            "Customer Support": ["Support Executive", "Senior Support Executive", "Support Lead", "Customer Success Manager"],
+            "Legal": ["Legal Executive", "Senior Legal Counsel", "Compliance Officer"],
+            "Administration": ["Admin Executive", "Office Manager", "Executive Assistant", "Facilities Manager"],
+        }
+
+        BASIC_SALARY_BY_DESIGNATION = {
+            "Software Engineer": 55000, "Senior Software Engineer": 80000,
+            "Tech Lead": 110000, "Backend Developer": 60000,
+            "Frontend Developer": 58000, "DevOps Engineer": 75000,
+            "QA Engineer": 45000, "Data Engineer": 70000,
+            "Product Manager": 90000, "Senior Product Manager": 120000,
+            "Associate PM": 60000, "Product Analyst": 50000,
+            "UI Designer": 50000, "UX Designer": 55000,
+            "Senior Designer": 75000, "Design Lead": 95000,
+            "Visual Designer": 48000,
+            "Marketing Executive": 35000, "Digital Marketing Manager": 65000,
+            "Content Writer": 30000, "SEO Specialist": 40000, "Brand Manager": 70000,
+            "Sales Executive": 32000, "Senior Sales Manager": 75000,
+            "Account Manager": 55000, "Business Development Executive": 45000,
+            "HR Executive": 35000, "HR Manager": 65000,
+            "Talent Acquisition Specialist": 45000, "HR Business Partner": 70000,
+            "Financial Analyst": 55000, "Accountant": 40000,
+            "Senior Accountant": 58000, "Finance Manager": 80000,
+            "Payroll Specialist": 45000,
+            "Operations Executive": 35000, "Operations Manager": 65000,
+            "Process Analyst": 48000, "Supply Chain Manager": 70000,
+            "Support Executive": 28000, "Senior Support Executive": 38000,
+            "Support Lead": 50000, "Customer Success Manager": 60000,
+            "Legal Executive": 45000, "Senior Legal Counsel": 90000,
+            "Compliance Officer": 65000,
+            "Admin Executive": 28000, "Office Manager": 45000,
+            "Executive Assistant": 35000, "Facilities Manager": 40000,
+        }
+
+        created_count = 0
+        skipped_count = 0
+
+        for i in range(1, 401):
+            firstname = random.choice(FIRST_NAMES)
+            lastname = random.choice(LAST_NAMES)
+            name = f"{firstname} {lastname}"
+            email = f"{firstname.lower()}.{lastname.lower()}{random.randint(10, 99)}@technova.com"
+            department = random.choice(DEPARTMENTS)
+            designation = random.choice(DESIGNATIONS_BY_DEPT[department])
+            doj = date(2020, 1, 1) + timedelta(days=random.randint(0, 2160))
+            phone = "9" + str(random.randint(100000000, 999999999))
+            is_active = random.random() > 0.05
+
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    "name": name,
+                    "role": UserRole.EMPLOYEE,
+                    "organization": org,
+                    "department": department,
+                    "designation": designation,
+                    "date_of_joining": doj,
+                    "phone": phone,
+                    "is_active": is_active,
+                },
+            )
+
+            if created:
+                user.set_password("Emp@12345")
+                user.save()
+
+                base = BASIC_SALARY_BY_DESIGNATION.get(designation, 35000)
+                basic = round(base * random.uniform(0.92, 1.08), 2)
+                SalaryStructure.objects.create(
+                    employee=user,
+                    basic_salary=Decimal(str(basic)),
+                    hra=Decimal(str(round(basic * 0.40, 2))),
+                    transport_allowance=Decimal(str(random.choice([2000, 3000, 3500, 4000, 5000]))),
+                    other_allowances=Decimal(str(random.choice([1000, 1500, 2000, 2500, 3000]))),
+                    pf_percentage=Decimal("12.00"),
+                    professional_tax=Decimal("200.00"),
+                )
+                created_count += 1
+            else:
+                skipped_count += 1
+
+            if i % 50 == 0:
+                self.stdout.write(f"  Progress: {i}/400 created...")
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"  ✅ Bulk employees done: {created_count} created, "
+                f"{skipped_count} skipped (already existed)"
+            )
+        )
+
+    # ------------------------------------------------------------------
     # Utility
     # ------------------------------------------------------------------
     def _log(self, model, name, created):
         tag = self.style.SUCCESS("Created") if created else self.style.WARNING("Exists ")
         self.stdout.write(f"    [{tag}] {model}: {name}")
+

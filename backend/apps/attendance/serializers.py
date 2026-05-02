@@ -12,6 +12,9 @@ from .models import AttendanceRecord, AttendanceStatus
 class AttendanceRecordSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(source="employee.name", read_only=True)
     employee_email = serializers.CharField(source="employee.email", read_only=True)
+    employee_department = serializers.CharField(
+        source="employee.department", read_only=True, default="—"
+    )
 
     class Meta:
         model = AttendanceRecord
@@ -20,6 +23,7 @@ class AttendanceRecordSerializer(serializers.ModelSerializer):
             "employee",
             "employee_name",
             "employee_email",
+            "employee_department",
             "date",
             "check_in",
             "check_out",

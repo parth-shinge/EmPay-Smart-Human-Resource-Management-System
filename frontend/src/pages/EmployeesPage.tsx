@@ -1,11 +1,12 @@
 /**
  * EmployeesPage — HR/Admin list + create employees.
+ * Supports search by name, filter by department & designation.
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Users, Plus, Search, X } from 'lucide-react';
+import { Users, Plus, Search, X, Filter, ChevronDown } from 'lucide-react';
 
 interface Employee {
   id: string;
@@ -30,23 +31,63 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [department, setDepartment] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [departments, setDepartments] = useState<string[]>([]);
+  const [designations, setDesignations] = useState<string[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     email: '', name: '', password: '', role: 'EMPLOYEE',
     department: '', designation: '', date_of_joining: '', phone: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 20;
+
+  // Fetch unique departments & designations for filter dropdowns
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const { data } = await api.get('/employees/', { params: { page_size: 500 } });
+        const list: Employee[] = data.results || data;
+        const deptSet = new Set<string>();
+        const desigSet = new Set<string>();
+        list.forEach((e) => {
+          if (e.department) deptSet.add(e.department);
+          if (e.designation) desigSet.add(e.designation);
+        });
+        setDepartments(Array.from(deptSet).sort());
+        setDesignations(Array.from(desigSet).sort());
+      } catch { /* ignore */ }
+    };
+    fetchFilterOptions();
+  }, []);
 
   const fetchEmployees = async () => {
+    setLoading(true);
     try {
-      const params: any = {};
+      const params: any = { page, page_size: pageSize };
       if (search) params.search = search;
+      if (department) params.department = department;
+      if (designation) params.designation = designation;
       const { data } = await api.get('/employees/', { params });
       setEmployees(data.results || data);
+      setTotalCount(data.count ?? (data.results || data).length);
     } catch { /* ignore */ } finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchEmployees(); }, [search]);
+  useEffect(() => { setPage(1); }, [search, department, designation]);
+  useEffect(() => { fetchEmployees(); }, [search, department, designation, page]);
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+  const activeFilterCount = [department, designation].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setDepartment('');
+    setDesignation('');
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,17 +120,116 @@ export default function EmployeesPage() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-        <input
-          type="text"
-          placeholder="Search by name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-slate-500"
-        />
+      {/* Search + Filters Bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Search */}
+        <div className="relative flex-1 max-w-sm">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            id="employee-search"
+            type="text"
+            placeholder="Search by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500/50 focus:outline-none transition-colors"
+          />
+        </div>
+
+        {/* Filter Toggle */}
+        <button
+          id="toggle-filters"
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+            showFilters || activeFilterCount > 0
+              ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400'
+              : 'bg-white/5 border-white/10 text-slate-400 hover:border-white/20'
+          }`}
+        >
+          <Filter size={15} />
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="bg-cyan-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+          <ChevronDown size={14} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+        </button>
       </div>
+
+      {/* Filter Dropdowns Panel */}
+      {showFilters && (
+        <div className="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-4 animate-in slide-in-from-top-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+              <Filter size={14} /> Filter Employees
+            </h4>
+            {activeFilterCount > 0 && (
+              <button
+                id="clear-filters"
+                onClick={clearFilters}
+                className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Department Filter */}
+            <div>
+              <label className="block text-xs text-slate-500 mb-1.5">Department</label>
+              <select
+                id="filter-department"
+                value={department}
+                onChange={(e) => setDepartment(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:border-cyan-500/50 focus:outline-none transition-colors appearance-none cursor-pointer"
+              >
+                <option value="">All Departments</option>
+                {departments.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Designation Filter */}
+            <div>
+              <label className="block text-xs text-slate-500 mb-1.5">Designation</label>
+              <select
+                id="filter-designation"
+                value={designation}
+                onChange={(e) => setDesignation(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:border-cyan-500/50 focus:outline-none transition-colors appearance-none cursor-pointer"
+              >
+                <option value="">All Designations</option>
+                {designations.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Active filter chips */}
+          {activeFilterCount > 0 && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {department && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-400">
+                  Dept: {department}
+                  <button onClick={() => setDepartment('')} className="hover:text-white transition-colors">
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              {designation && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-xs text-purple-400">
+                  Role: {designation}
+                  <button onClick={() => setDesignation('')} className="hover:text-white transition-colors">
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Create Form */}
       {showForm && (
@@ -124,6 +264,12 @@ export default function EmployeesPage() {
         </form>
       )}
 
+      {/* Results count + pagination info */}
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <span>{totalCount} employee{totalCount !== 1 ? 's' : ''} found</span>
+        {totalPages > 1 && <span>Page {page} of {totalPages}</span>}
+      </div>
+
       {/* Employee List */}
       <div className="rounded-xl bg-white/[0.03] border border-white/5 overflow-hidden overflow-x-auto">
         <table className="w-full text-sm min-w-[700px]">
@@ -139,7 +285,12 @@ export default function EmployeesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="text-center py-8 text-slate-500">Loading...</td></tr>
+              <tr><td colSpan={6} className="text-center py-8 text-slate-500">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                  Loading...
+                </div>
+              </td></tr>
             ) : employees.length === 0 ? (
               <tr><td colSpan={6} className="text-center py-8 text-slate-500">No employees found</td></tr>
             ) : employees.map((emp) => (
@@ -173,6 +324,45 @@ export default function EmployeesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            id="prev-page"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-400 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            Previous
+          </button>
+          {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+            const pageNum = page <= 3 ? i + 1 : page + i - 2;
+            if (pageNum < 1 || pageNum > totalPages) return null;
+            return (
+              <button
+                key={pageNum}
+                onClick={() => setPage(pageNum)}
+                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                  pageNum === page
+                    ? 'bg-cyan-500 text-white'
+                    : 'bg-white/5 border border-white/10 text-slate-400 hover:border-white/20'
+                }`}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+          <button
+            id="next-page"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-sm text-slate-400 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            Next
+          </button>
+        </div>
+      )}
     </div>
   );
 }

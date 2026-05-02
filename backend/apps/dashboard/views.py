@@ -107,7 +107,9 @@ class DashboardStatsView(APIView):
             ).count()
 
             departments = (
-                User.objects.filter(organization=org, is_active=True)
+                User.objects.filter(
+                    organization=org, is_active=True, role=UserRole.EMPLOYEE
+                )
                 .exclude(department__isnull=True)
                 .exclude(department="")
                 .values("department")
@@ -115,7 +117,9 @@ class DashboardStatsView(APIView):
             )
             data["total_departments"] = departments.count()
             data["department_breakdown"] = list(
-                User.objects.filter(organization=org, is_active=True)
+                User.objects.filter(
+                    organization=org, is_active=True, role=UserRole.EMPLOYEE
+                )
                 .exclude(department__isnull=True)
                 .exclude(department="")
                 .values("department")
@@ -195,8 +199,15 @@ class AttendanceChartView(APIView):
                 if day.weekday() < 5:
                     dates.append(day)
         else:
-            # Default: last 7 calendar days
-            dates = [(today - timedelta(days=i)) for i in range(6, -1, -1)]
+            # Default: last 7 working days (skip weekends)
+            dates = []
+            offset = 0
+            while len(dates) < 7:
+                d = today - timedelta(days=offset)
+                if d.weekday() < 5:  # Mon–Fri only
+                    dates.append(d)
+                offset += 1
+            dates.reverse()
 
         total_employees = User.objects.filter(
             organization=org, is_active=True, role=UserRole.EMPLOYEE

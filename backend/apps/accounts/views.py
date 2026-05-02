@@ -1,4 +1,7 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,6 +15,15 @@ from .serializers import (
     UserSerializer,
     UserUpdateSerializer,
 )
+
+
+# ---------------------------------------------------------------------------
+# Pagination
+# ---------------------------------------------------------------------------
+class EmployeePagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = "page_size"
+    max_page_size = 100
 
 
 # ---------------------------------------------------------------------------
@@ -66,9 +78,17 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     """
     GET  — list all employees in the requester's organization.
     POST — create a new employee (Admin/HR only).
+
+    Supports: pagination, search, ordering, and filtering by
+    department, role, designation, and is_active.
     """
 
     permission_classes = [IsHROrAdmin]
+    pagination_class = EmployeePagination
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ["name", "email", "designation", "department"]
+    ordering_fields = ["name", "date_of_joining", "department", "designation", "role"]
+    ordering = ["name"]
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -76,16 +96,27 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
         return UserSerializer
 
     def get_queryset(self):
-        qs = User.objects.filter(organization=self.request.user.organization)
+        qs = User.objects.filter(
+            organization=self.request.user.organization
+        ).select_related("organization")
 
-        # Optional filters
-        department = self.request.query_params.get("department")
-        if department:
-            qs = qs.filter(department__iexact=department)
+        dept = self.request.query_params.get("department")
+        role = self.request.query_params.get("role")
+        designation = self.request.query_params.get("designation")
+        is_active = self.request.query_params.get("is_active")
 
-        search = self.request.query_params.get("search")
-        if search:
-            qs = qs.filter(name__icontains=search)
+        # Default to EMPLOYEE role unless a specific role filter is provided
+        if role:
+            qs = qs.filter(role=role.upper())
+        else:
+            qs = qs.filter(role="EMPLOYEE")
+
+        if dept:
+            qs = qs.filter(department__icontains=dept)
+        if designation:
+            qs = qs.filter(designation__icontains=designation)
+        if is_active is not None:
+            qs = qs.filter(is_active=is_active.lower() == "true")
 
         return qs
 

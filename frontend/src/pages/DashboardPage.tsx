@@ -179,6 +179,7 @@ export default function DashboardPage() {
               <Bar dataKey="present" fill="#06b6d4" radius={[4, 4, 0, 0]} name="Present" />
               <Bar dataKey="absent" fill="#ef4444" radius={[4, 4, 0, 0]} name="Absent" />
               <Bar dataKey="on_leave" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="On Leave" />
+              <Bar dataKey="half_day" fill="#f59e0b" radius={[4, 4, 0, 0]} name="Half Day" />
             </BarChart>
           </ResponsiveContainer>
         </div>

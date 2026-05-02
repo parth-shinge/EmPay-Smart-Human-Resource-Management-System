@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.models import User
+from apps.accounts.models import User, UserRole
 from apps.accounts.permissions import IsHROrAdmin, IsPayrollOrAdmin
 from apps.attendance.models import AttendanceRecord, AttendanceStatus
 from apps.leave.models import LeaveAllocation, LeaveRequest, LeaveStatus
@@ -86,11 +86,12 @@ class DashboardStatsView(APIView):
         # ---- HR-facing stats ----
         if user.role in ("HR_OFFICER", "ADMIN"):
             data["total_employees"] = User.objects.filter(
-                organization=org, is_active=True
+                organization=org, is_active=True, role=UserRole.EMPLOYEE
             ).count()
 
             today_records = AttendanceRecord.objects.filter(
                 employee__organization=org,
+                employee__role=UserRole.EMPLOYEE,
                 date=today,
             )
             data["present_today"] = today_records.filter(
@@ -197,19 +198,33 @@ class AttendanceChartView(APIView):
             # Default: last 7 calendar days
             dates = [(today - timedelta(days=i)) for i in range(6, -1, -1)]
 
+        total_employees = User.objects.filter(
+            organization=org, is_active=True, role=UserRole.EMPLOYEE
+        ).count()
+
         chart_data = []
         for d in dates:
             records = AttendanceRecord.objects.filter(
                 employee__organization=org,
+                employee__role=UserRole.EMPLOYEE,
                 date=d,
             )
+            present = records.filter(status=AttendanceStatus.PRESENT).count()
+            on_leave = records.filter(status=AttendanceStatus.ON_LEAVE).count()
+            half_day = records.filter(status=AttendanceStatus.HALF_DAY).count()
+            explicit_absent = records.filter(status=AttendanceStatus.ABSENT).count()
+            # Employees with no record at all are also absent
+            absent = total_employees - present - on_leave - half_day
+            # Ensure we don't double-count explicit absent records
+            absent = max(absent, explicit_absent)
+
             chart_data.append(
                 {
                     "date": d.isoformat(),
-                    "present": records.filter(status=AttendanceStatus.PRESENT).count(),
-                    "absent": records.filter(status=AttendanceStatus.ABSENT).count(),
-                    "on_leave": records.filter(status=AttendanceStatus.ON_LEAVE).count(),
-                    "half_day": records.filter(status=AttendanceStatus.HALF_DAY).count(),
+                    "present": present,
+                    "absent": absent,
+                    "on_leave": on_leave,
+                    "half_day": half_day,
                 }
             )
 

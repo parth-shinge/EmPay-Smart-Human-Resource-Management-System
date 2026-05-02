@@ -104,21 +104,18 @@ const features = [
     title: 'Smart Attendance',
     description:
       'Biometric-grade clock tracking with geo-fencing and real-time anomaly detection. Every second, accounted for.',
-    link: 'ATTENDANCE_MODULE',
   },
   {
     icon: 'event_available',
     title: 'Leave Engine',
     description:
       'Multi-tier approval workflows with automatic balance calculations, carry-forward logic, and conflict detection.',
-    link: 'LEAVE_SYSTEM',
   },
   {
     icon: 'account_balance',
     title: 'Payroll Core',
     description:
       'One-click payroll processing with automatic tax deductions, PF calculations, and audit-ready payslip generation.',
-    link: 'PAYROLL_ENGINE',
   },
 ];
 
@@ -136,18 +133,7 @@ export default function LandingPage() {
   const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.92]);
   const heroY = useTransform(scrollYProgress, [0, 1], [0, 100]);
 
-  /* mouse parallax for orbs */
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      setMouse({
-        x: (e.clientX / window.innerWidth - 0.5) * 30,
-        y: (e.clientY / window.innerHeight - 0.5) * 30,
-      });
-    };
-    window.addEventListener('mousemove', handler);
-    return () => window.removeEventListener('mousemove', handler);
-  }, []);
+
 
   return (
     <div className="min-h-screen bg-[#0c1324] text-white font-['Manrope'] selection:bg-cyan-500/30 overflow-x-hidden">
@@ -164,7 +150,7 @@ export default function LandingPage() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            {['Features', 'Architecture', 'Docs'].map((item) => (
+            {['Features', 'Architecture'].map((item) => (
               <a
                 key={item}
                 href={`#${item.toLowerCase()}`}
@@ -185,42 +171,54 @@ export default function LandingPage() {
       </header>
 
       <main>
-        {/* ─── HERO SECTION ─── */}
+        {/* ─── HERO SECTION with Lamp Effect ─── */}
         <motion.section
           ref={heroRef}
           style={{ opacity: heroOpacity, scale: heroScale, y: heroY }}
           className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20"
         >
-          {/* Background layers */}
-          <div className="absolute inset-0 pointer-events-none">
-            {/* Radial top glow */}
-            <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[900px] h-[700px] bg-[radial-gradient(ellipse_at_center,rgba(6,182,212,0.12),transparent_70%)] animate-pulse-glow" />
-
-            {/* 3D Perspective Grid */}
-            <div
-              className="absolute bottom-0 left-[-10%] right-[-10%] h-[55%] perspective-grid perspective-grid-animated"
-              style={{
-                transform: 'perspective(600px) rotateX(55deg)',
-                transformOrigin: 'center bottom',
-              }}
-            />
-
-            {/* Floating gradient orbs - mouse reactive */}
-            <div
-              className="absolute top-[15%] left-[10%] w-72 h-72 rounded-full bg-cyan-500/8 blur-[100px] animate-float-slow"
-              style={{ transform: `translate(${mouse.x * 0.5}px, ${mouse.y * 0.5}px)` }}
-            />
-            <div
-              className="absolute top-[30%] right-[8%] w-56 h-56 rounded-full bg-teal-400/6 blur-[80px] animate-float-medium"
-              style={{ transform: `translate(${mouse.x * -0.3}px, ${mouse.y * -0.3}px)` }}
-            />
-            <div
-              className="absolute bottom-[25%] left-[30%] w-40 h-40 rounded-full bg-sky-500/5 blur-[60px] animate-float-fast"
-              style={{ transform: `translate(${mouse.x * 0.4}px, ${mouse.y * 0.4}px)` }}
-            />
-
-            {/* Horizontal accent line */}
-            <div className="absolute top-[12%] left-1/2 -translate-x-1/2 w-48 h-[1px] bg-cyan-500/50 glow-line rounded-full" />
+          {/* Lamp Effect */}
+          <div className="absolute top-0 left-0 right-0 bottom-0 pointer-events-none overflow-hidden">
+            <div className="relative flex w-full h-full items-start justify-center isolate z-0" style={{ paddingTop: '60px' }}>
+              <motion.div
+                initial={{ opacity: 0.5, width: "15rem" }}
+                whileInView={{ opacity: 1, width: "30rem" }}
+                transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
+                style={{ backgroundImage: `conic-gradient(from 70deg at center top, rgb(6,182,212), transparent, transparent)` }}
+                className="absolute right-1/2 h-[300px] overflow-visible w-[30rem] top-[60px]"
+              >
+                <div className="absolute w-full left-0 bg-[#0c1324] h-40 bottom-0 z-20" style={{ maskImage: 'linear-gradient(to top, white, transparent)' }} />
+                <div className="absolute w-40 h-full left-0 bg-[#0c1324] bottom-0 z-20" style={{ maskImage: 'linear-gradient(to right, white, transparent)' }} />
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0.5, width: "15rem" }}
+                whileInView={{ opacity: 1, width: "30rem" }}
+                transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
+                style={{ backgroundImage: `conic-gradient(from 290deg at center top, transparent, transparent, rgb(6,182,212))` }}
+                className="absolute left-1/2 h-[300px] w-[30rem] top-[60px]"
+              >
+                <div className="absolute w-40 h-full right-0 bg-[#0c1324] bottom-0 z-20" style={{ maskImage: 'linear-gradient(to left, white, transparent)' }} />
+                <div className="absolute w-full right-0 bg-[#0c1324] h-40 bottom-0 z-20" style={{ maskImage: 'linear-gradient(to top, white, transparent)' }} />
+              </motion.div>
+              {/* Bright glow bar */}
+              <motion.div
+                initial={{ width: "15rem" }}
+                whileInView={{ width: "30rem" }}
+                transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
+                className="absolute z-50 h-[2px] w-[30rem] top-[60px] bg-cyan-400"
+              />
+              {/* Glow bloom behind bar */}
+              <motion.div
+                initial={{ width: "8rem" }}
+                whileInView={{ width: "16rem" }}
+                transition={{ delay: 0.3, duration: 0.8, ease: "easeInOut" }}
+                className="absolute z-30 h-36 w-64 top-[10px] rounded-full bg-cyan-400 blur-2xl"
+              />
+              {/* Large diffuse glow */}
+              <div className="absolute z-20 h-36 w-[28rem] top-[20px] rounded-full bg-cyan-500 opacity-50 blur-3xl"></div>
+              {/* Ceiling - hides everything above the bar */}
+              <div className="absolute z-40 h-[62px] w-full top-0 bg-[#0c1324]"></div>
+            </div>
           </div>
 
           {/* Hero content */}
@@ -230,19 +228,6 @@ export default function LandingPage() {
             transition={{ duration: 0.9, delay: 0.2 }}
             className="relative z-10 text-center px-6 max-w-4xl"
           >
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-full mb-8"
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="font-['Space_Grotesk'] text-[10px] tracking-[0.2em] uppercase text-cyan-400">
-                Next-Gen HR Platform
-              </span>
-            </motion.div>
-
             {/* Headline */}
             <h1 className="font-['Space_Grotesk'] text-5xl sm:text-6xl lg:text-[76px] font-bold leading-[1.05] tracking-tighter mb-6 uppercase">
               <DecryptedText
@@ -340,10 +325,7 @@ export default function LandingPage() {
                     </h3>
                     <p className="text-slate-400 leading-relaxed text-[15px]">{f.description}</p>
 
-                    {/* Hover link */}
-                    <div className="mt-auto pt-8 flex items-center text-cyan-400 font-['Space_Grotesk'] text-[10px] tracking-[0.15em] uppercase opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                      {f.link} <span className="ml-2 text-sm">→</span>
-                    </div>
+
                   </div>
                 </TiltCard>
               </RevealSection>
@@ -463,29 +445,16 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-3">
-              {['Features', 'Architecture', 'Documentation'].map((link) => (
-                <a
-                  key={link}
-                  href="#"
-                  className="font-['Space_Grotesk'] text-[11px] tracking-[0.12em] uppercase text-slate-500 hover:text-cyan-400 transition-colors duration-200"
-                >
-                  {link}
-                </a>
-              ))}
-            </div>
-            <div className="flex flex-col gap-3">
-              {['Payroll', 'Attendance', 'Contact'].map((link) => (
-                <a
-                  key={link}
-                  href="#"
-                  className="font-['Space_Grotesk'] text-[11px] tracking-[0.12em] uppercase text-slate-500 hover:text-cyan-400 transition-colors duration-200"
-                >
-                  {link}
-                </a>
-              ))}
-            </div>
+          <div className="flex flex-col gap-3">
+            {['Features', 'Architecture'].map((link) => (
+              <a
+                key={link}
+                href={`#${link.toLowerCase()}`}
+                className="font-['Space_Grotesk'] text-[11px] tracking-[0.12em] uppercase text-slate-500 hover:text-cyan-400 transition-colors duration-200"
+              >
+                {link}
+              </a>
+            ))}
           </div>
         </div>
       </footer>

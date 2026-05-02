@@ -8,7 +8,6 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript)](https://typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.2-06B6D4?logo=tailwindcss)](https://tailwindcss.com)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
 
@@ -16,13 +15,23 @@
 
 ## 📸 Screenshots
 
-<div align="center">
+### Landing Page
+![Landing Page](docs/landing.png)
 
-| Dashboard | Employees | Salary Structure |
-|:-:|:-:|:-:|
-| ![Dashboard](docs/dashboard.png) | ![Employees](docs/employees.png) | ![Salary](docs/salary.png) |
+### Login
+![Login Page](docs/login.png)
 
-</div>
+### Dashboard (Admin View)
+![Dashboard](docs/dashboard.png)
+
+### Employee Directory
+![Employees](docs/employees.png)
+
+### Salary Structures
+![Salary Structure](docs/salary.png)
+
+### Payroll Management
+![Payroll](docs/payroll.png)
 
 ---
 
@@ -83,8 +92,8 @@
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/EmPay.git
-cd EmPay
+git clone https://github.com/parth-shinge/EmPay-Smart-Human-Resource-Management-System.git
+cd EmPay-Smart-Human-Resource-Management-System
 ```
 
 ### 2. Backend Setup
@@ -159,8 +168,7 @@ EmPay/
 │   ├── Dockerfile
 │   └── package.json
 ├── docker-compose.yml
-├── SYSTEM_ARCHITECTURE.md
-└── EMPAY_PROJECT.md
+└── README.md
 ```
 
 ---
@@ -188,12 +196,6 @@ EmPay/
 | Payroll | `/api/payroll/payruns/:id/finalize/` | POST | Payroll/Admin |
 | Payroll | `/api/payroll/payslips/` | GET | JWT |
 | Dashboard | `/api/dashboard/stats/` | GET | JWT |
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
 
 ---
 

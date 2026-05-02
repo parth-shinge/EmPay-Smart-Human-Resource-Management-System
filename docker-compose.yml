@@ -1,0 +1,80 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: empay_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: empay
+      POSTGRES_USER: empay_user
+      POSTGRES_PASSWORD: empay_secret_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - empay_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U empay_user -d empay"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - empay_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: empay_backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    environment:
+      - DEBUG=0
+      - SECRET_KEY=django-insecure-empay-hackathon-key-change-in-prod
+      - DATABASE_URL=postgres://empay_user:empay_secret_2026@db:5432/empay
+      - ALLOWED_HOSTS=*
+      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://frontend:5173
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - empay_media:/app/media
+      - empay_static:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - empay_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: empay_frontend
+    restart: unless-stopped
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - empay_network
+
+volumes:
+  empay_pg_data:
+    driver: local
+  empay_media:
+    driver: local
+  empay_static:
+    driver: local
+
+networks:
+  empay_network:
+    driver: bridge

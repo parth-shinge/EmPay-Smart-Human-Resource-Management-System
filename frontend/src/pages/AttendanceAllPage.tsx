@@ -2,9 +2,9 @@
  * AttendanceAllPage — HR/Admin view all attendance records with filters.
  * Includes department column and department dropdown filter.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
-import { Search, Filter } from 'lucide-react';
+import { Filter } from 'lucide-react';
 
 interface AttendanceRecord {
   id: string;
@@ -38,37 +38,51 @@ export default function AttendanceAllPage() {
   useEffect(() => {
     const fetchDepts = async () => {
       try {
-        const { data } = await api.get('/employees/', { params: { page_size: 500 } });
-        const list = data.results || data;
+        const { data } = await api.get('/employees/', { params: { page_size: 100 } });
+        const list: any[] = data.results || data;
         const deptSet = new Set<string>();
-        list.forEach((e: any) => {
+        list.forEach((e) => {
           if (e.department) deptSet.add(e.department);
         });
+        // If we got fewer results than total, fetch more pages
+        if (data.count && data.count > list.length) {
+          const totalPages = Math.ceil(data.count / 100);
+          for (let p = 2; p <= totalPages; p++) {
+            const { data: pageData } = await api.get('/employees/', { params: { page_size: 100, page: p } });
+            const pageList: any[] = pageData.results || pageData;
+            pageList.forEach((e) => {
+              if (e.department) deptSet.add(e.department);
+            });
+          }
+        }
         setDepartments(Array.from(deptSet).sort());
       } catch { /* ignore */ }
     };
     fetchDepts();
   }, []);
 
-  const fetchRecords = async () => {
+  // Fetch attendance records — all filter params passed directly to avoid stale closures
+  const fetchRecords = useCallback(async (m: number, y: number, status: string, dept: string) => {
     setLoading(true);
     try {
-      const params: any = { month, year };
-      if (statusFilter) params.status = statusFilter;
-      if (departmentFilter) params.department = departmentFilter;
+      const params: Record<string, string | number> = { month: m, year: y };
+      if (status) params.status = status;
+      if (dept) params.department = dept;
       const { data } = await api.get('/attendance/all/', { params });
       setRecords(data.results || data);
     } catch { /* ignore */ } finally { setLoading(false); }
-  };
+  }, []);
 
-  useEffect(() => { fetchRecords(); }, [month, year, statusFilter, departmentFilter]);
+  useEffect(() => {
+    fetchRecords(month, year, statusFilter, departmentFilter);
+  }, [month, year, statusFilter, departmentFilter, fetchRecords]);
 
   return (
     <div className="space-y-6 max-w-7xl">
       <h2 className="text-xl font-bold font-['Space_Grotesk']">All Attendance Records</h2>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
         <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
           className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
           {Array.from({ length: 12 }, (_, i) => (
@@ -92,7 +106,9 @@ export default function AttendanceAllPage() {
         <select
           id="filter-department"
           value={departmentFilter}
-          onChange={(e) => setDepartmentFilter(e.target.value)}
+          onChange={(e) => {
+            setDepartmentFilter(e.target.value);
+          }}
           className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
         >
           <option value="">All Departments</option>
@@ -100,10 +116,24 @@ export default function AttendanceAllPage() {
             <option key={d} value={d}>{d}</option>
           ))}
         </select>
+
+        {/* Active filter indicator */}
+        {(statusFilter || departmentFilter) && (
+          <button
+            onClick={() => { setStatusFilter(''); setDepartmentFilter(''); }}
+            className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors underline"
+          >
+            Clear filters
+          </button>
+        )}
       </div>
 
       {/* Results count */}
-      <p className="text-xs text-slate-500">{records.length} records found</p>
+      <p className="text-xs text-slate-500">
+        {records.length} records shown
+        {departmentFilter && <span className="text-cyan-400"> · Dept: {departmentFilter}</span>}
+        {statusFilter && <span className="text-purple-400"> · Status: {statusFilter}</span>}
+      </p>
 
       {/* Table */}
       <div className="rounded-xl bg-white/[0.03] border border-white/5 overflow-hidden overflow-x-auto">

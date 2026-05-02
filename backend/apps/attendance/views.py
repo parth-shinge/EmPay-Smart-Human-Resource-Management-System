@@ -89,7 +89,7 @@ class AllAttendanceView(generics.ListAPIView):
     def get_queryset(self):
         qs = AttendanceRecord.objects.filter(
             employee__organization=self.request.user.organization
-        )
+        ).select_related("employee")
 
         # Filter by specific date
         date_param = self.request.query_params.get("date")

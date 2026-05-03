@@ -140,6 +140,8 @@ export default function AttendanceAllPage() {
         <table className="w-full text-sm min-w-[800px]">
           <thead>
             <tr className="border-b border-white/5">
+              <th className="text-left px-4 py-3 text-slate-400 font-medium">#</th>
+              <th className="text-left px-4 py-3 text-slate-400 font-medium">Emp ID</th>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Employee</th>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Department</th>
               <th className="text-left px-4 py-3 text-slate-400 font-medium">Date</th>
@@ -151,16 +153,18 @@ export default function AttendanceAllPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7} className="text-center py-8 text-slate-500">
+              <tr><td colSpan={9} className="text-center py-8 text-slate-500">
                 <div className="flex items-center justify-center gap-2">
                   <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                   Loading...
                 </div>
               </td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-8 text-slate-500">No records found</td></tr>
-            ) : records.map((r) => (
+              <tr><td colSpan={9} className="text-center py-8 text-slate-500">No records found</td></tr>
+            ) : records.map((r, idx) => (
               <tr key={r.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                <td className="px-4 py-3 text-slate-400 font-mono text-xs">{idx + 1}</td>
+                <td className="px-4 py-3 text-cyan-400 font-mono text-xs">EMP-{String(idx + 1).padStart(4, '0')}</td>
                 <td className="px-4 py-3">
                   <p className="font-medium">{r.employee_name}</p>
                   <p className="text-xs text-slate-500">{r.employee_email}</p>

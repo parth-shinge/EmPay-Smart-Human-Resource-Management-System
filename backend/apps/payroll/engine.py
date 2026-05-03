@@ -183,6 +183,11 @@ def process_payrun(payrun: Payrun) -> dict:
         raise ValueError(f"Payrun is not in DRAFT status (current: {payrun.status}).")
 
     org = payrun.organization
+    # First day of the payrun month and last day
+    first_of_month = date(payrun.year, payrun.month, 1)
+    last_day_num = calendar.monthrange(payrun.year, payrun.month)[1]
+    last_of_month = date(payrun.year, payrun.month, last_day_num)
+
     employees = User.objects.filter(
         organization=org,
         is_active=True,
@@ -195,6 +200,16 @@ def process_payrun(payrun: Payrun) -> dict:
     skipped = 0
 
     for employee in employees:
+        # Skip employees who joined AFTER this payrun month
+        if employee.date_of_joining and employee.date_of_joining > last_of_month:
+            logger.info(
+                f"Skipping {employee.name} ({employee.email}) — joined "
+                f"{employee.date_of_joining}, after payrun month "
+                f"{payrun.month}/{payrun.year}."
+            )
+            skipped += 1
+            continue
+
         try:
             salary = SalaryStructure.objects.get(employee=employee)
         except SalaryStructure.DoesNotExist:

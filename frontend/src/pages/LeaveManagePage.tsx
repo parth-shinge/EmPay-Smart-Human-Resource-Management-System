@@ -35,10 +35,19 @@ export default function LeaveManagePage() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const params: any = {};
+      const params: any = { page_size: 200 };
       if (statusFilter) params.status = statusFilter;
       const { data } = await api.get('/leave/requests/all/', { params });
-      setRequests(data.results || data);
+      let allResults: LeaveRequest[] = data.results || data;
+      // Fetch remaining pages if paginated
+      if (data.count && data.results && data.count > allResults.length) {
+        const totalPages = Math.ceil(data.count / 200);
+        for (let p = 2; p <= totalPages; p++) {
+          const { data: pageData } = await api.get('/leave/requests/all/', { params: { ...params, page: p } });
+          allResults = [...allResults, ...(pageData.results || pageData)];
+        }
+      }
+      setRequests(allResults);
     } catch { /* ignore */ } finally { setLoading(false); }
   };
 
@@ -68,6 +77,11 @@ export default function LeaveManagePage() {
           <option value="">All</option>
         </select>
       </div>
+
+      {/* Records count */}
+      {!loading && requests.length > 0 && (
+        <p className="text-xs text-slate-500">{requests.length} leave request{requests.length !== 1 ? 's' : ''} shown</p>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center h-40">

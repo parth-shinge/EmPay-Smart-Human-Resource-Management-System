@@ -28,7 +28,7 @@ const statusColors: Record<string, string> = {
 export default function AttendanceAllPage() {
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  const [month, setMonth] = useState(4); // Default to April (seeded data)
   const [year, setYear] = useState(new Date().getFullYear());
   const [statusFilter, setStatusFilter] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');

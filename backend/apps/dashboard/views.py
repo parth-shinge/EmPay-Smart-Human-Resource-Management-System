@@ -213,6 +213,24 @@ class AttendanceChartView(APIView):
             organization=org, is_active=True, role=UserRole.EMPLOYEE
         ).count()
 
+        # Only count employees who have at least one attendance record
+        # in the date range, so bulk employees without records don't
+        # inflate the absent count.
+        if dates:
+            employees_with_records = (
+                AttendanceRecord.objects.filter(
+                    employee__organization=org,
+                    employee__role=UserRole.EMPLOYEE,
+                    date__gte=dates[0],
+                    date__lte=dates[-1],
+                )
+                .values("employee_id")
+                .distinct()
+                .count()
+            )
+        else:
+            employees_with_records = total_employees
+
         chart_data = []
         for d in dates:
             records = AttendanceRecord.objects.filter(
@@ -224,9 +242,8 @@ class AttendanceChartView(APIView):
             on_leave = records.filter(status=AttendanceStatus.ON_LEAVE).count()
             half_day = records.filter(status=AttendanceStatus.HALF_DAY).count()
             explicit_absent = records.filter(status=AttendanceStatus.ABSENT).count()
-            # Employees with no record at all are also absent
-            absent = total_employees - present - on_leave - half_day
-            # Ensure we don't double-count explicit absent records
+            # Only consider employees who have records in this period
+            absent = employees_with_records - present - on_leave - half_day
             absent = max(absent, explicit_absent)
 
             chart_data.append(

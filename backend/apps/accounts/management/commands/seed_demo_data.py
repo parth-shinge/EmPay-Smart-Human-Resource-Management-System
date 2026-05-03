@@ -51,6 +51,8 @@ class Command(BaseCommand):
         self._seed_attendance_records(users, leave_requests)
         self._seed_payrun_and_payslips(org, users)
         self._seed_bulk_employees(org)
+        self._seed_bulk_attendance(org)
+        self._seed_bulk_leave_requests(org)
 
         # ------------------------------------------------------------------
         # Final department breakdown
@@ -693,6 +695,138 @@ class Command(BaseCommand):
                 f"  ✅ Bulk employees done: {created_count} created, "
                 f"{skipped_count} skipped (already existed)"
             )
+        )
+
+    # ------------------------------------------------------------------
+    # 10. Bulk Attendance Records (April 2026) for all employees
+    # ------------------------------------------------------------------
+    def _seed_bulk_attendance(self, org):
+        self.stdout.write(self.style.HTTP_INFO("▸ Seeding bulk attendance (April 2026)..."))
+
+        # April 2026 weekdays
+        april_weekdays = []
+        current = date(2026, 4, 1)
+        while current <= date(2026, 4, 30):
+            if current.weekday() < 5:
+                april_weekdays.append(current)
+            current += timedelta(days=1)
+
+        employees = User.objects.filter(
+            organization=org, role=UserRole.EMPLOYEE, is_active=True,
+        )
+        # Skip employees that already have April 2026 records
+        already_seeded = set(
+            AttendanceRecord.objects.filter(
+                date__month=4, date__year=2026
+            ).values_list("employee_id", flat=True).distinct()
+        )
+
+        random.seed(99)
+        created_count = 0
+        for emp in employees:
+            if emp.id in already_seeded:
+                continue
+            # Skip if joined after April 2026
+            if emp.date_of_joining and emp.date_of_joining > date(2026, 4, 30):
+                continue
+
+            for d in april_weekdays:
+                roll = random.random()
+                if roll < 0.80:
+                    att_status = AttendanceStatus.PRESENT
+                    cin = time(random.randint(8, 9), random.randint(0, 59))
+                    cout = time(random.randint(17, 18), random.randint(0, 59))
+                    notes = ""
+                elif roll < 0.88:
+                    att_status = AttendanceStatus.ABSENT
+                    cin, cout = None, None
+                    notes = ""
+                elif roll < 0.94:
+                    att_status = AttendanceStatus.ON_LEAVE
+                    cin, cout = None, None
+                    notes = "Leave"
+                else:
+                    att_status = AttendanceStatus.HALF_DAY
+                    cin = time(random.randint(8, 9), random.randint(0, 59))
+                    cout = time(13, random.randint(0, 30))
+                    notes = "Half day"
+
+                AttendanceRecord.objects.get_or_create(
+                    employee=emp, date=d,
+                    defaults={
+                        "check_in": cin, "check_out": cout,
+                        "status": att_status, "notes": notes,
+                    },
+                )
+                created_count += 1
+
+            if created_count % 2000 == 0 and created_count > 0:
+                self.stdout.write(f"  Progress: {created_count} records...")
+
+        self.stdout.write(
+            self.style.SUCCESS(f"  ✅ Bulk attendance done: {created_count} records created")
+        )
+
+    # ------------------------------------------------------------------
+    # 11. Bulk Leave Requests for random employees
+    # ------------------------------------------------------------------
+    def _seed_bulk_leave_requests(self, org):
+        self.stdout.write(self.style.HTTP_INFO("▸ Seeding bulk leave requests..."))
+
+        leave_types = list(LeaveType.objects.filter(organization=org))
+        if not leave_types:
+            return
+
+        employees = list(
+            User.objects.filter(organization=org, role=UserRole.EMPLOYEE, is_active=True)
+        )
+        reviewer = User.objects.filter(
+            organization=org, role__in=[UserRole.HR_OFFICER, UserRole.PAYROLL_OFFICER]
+        ).first()
+
+        random.seed(77)
+        created_count = 0
+        reasons = [
+            "Family function", "Medical appointment", "Personal errands",
+            "Not feeling well", "Travel", "Home emergency",
+            "Wedding ceremony", "Festival celebration", "Dental appointment",
+            "Moving to new house", "Parent-teacher meeting", "Vehicle servicing",
+        ]
+
+        for emp in random.sample(employees, min(60, len(employees))):
+            lt = random.choice(leave_types)
+            start_day = random.randint(1, 25)
+            duration = random.choice([1, 1, 1, 2, 2, 3])
+            start = date(2026, random.choice([3, 4, 5]), start_day)
+            end = start + timedelta(days=duration - 1)
+            # Skip weekends for end date
+            while end.weekday() >= 5:
+                end -= timedelta(days=1)
+            if end < start:
+                end = start
+
+            status_choice = random.choices(
+                [LeaveStatus.APPROVED, LeaveStatus.PENDING, LeaveStatus.REJECTED],
+                weights=[50, 35, 15],
+            )[0]
+
+            lr, created = LeaveRequest.objects.get_or_create(
+                employee=emp,
+                leave_type=lt,
+                start_date=start,
+                defaults={
+                    "end_date": end,
+                    "reason": random.choice(reasons),
+                    "status": status_choice,
+                    "reviewed_by": reviewer if status_choice != LeaveStatus.PENDING else None,
+                    "reviewed_at": timezone.now() if status_choice != LeaveStatus.PENDING else None,
+                },
+            )
+            if created:
+                created_count += 1
+
+        self.stdout.write(
+            self.style.SUCCESS(f"  ✅ Bulk leave requests done: {created_count} created")
         )
 
     # ------------------------------------------------------------------

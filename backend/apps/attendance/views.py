@@ -109,7 +109,7 @@ class AllAttendanceView(generics.ListAPIView):
         if department:
             qs = qs.filter(employee__department__iexact=department)
 
-        # Filter by employee UUID
+        # Filter by employee ID
         employee = self.request.query_params.get("employee")
         if employee:
             qs = qs.filter(employee_id=employee)

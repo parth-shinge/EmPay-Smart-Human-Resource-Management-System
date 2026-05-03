@@ -103,7 +103,7 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
 # LeaveRequest Create Serializer
 # ---------------------------------------------------------------------------
 class LeaveRequestCreateSerializer(serializers.Serializer):
-    leave_type = serializers.UUIDField()
+    leave_type = serializers.IntegerField()
     start_date = serializers.DateField()
     end_date = serializers.DateField()
     reason = serializers.CharField()

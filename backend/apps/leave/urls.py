@@ -23,7 +23,7 @@ urlpatterns = [
         name="leave-requests-all",
     ),
     path(
-        "leave/requests/<uuid:pk>/decide/",
+        "leave/requests/<int:pk>/decide/",
         views.LeaveRequestDecideView.as_view(),
         name="leave-request-decide",
     ),

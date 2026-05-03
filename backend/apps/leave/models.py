@@ -1,4 +1,3 @@
-import uuid
 from datetime import timedelta
 
 from django.db import models
@@ -8,7 +7,6 @@ from django.db import models
 # LeaveType
 # ---------------------------------------------------------------------------
 class LeaveType(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organization = models.ForeignKey(
         "accounts.Organization",
         on_delete=models.CASCADE,
@@ -30,7 +28,6 @@ class LeaveType(models.Model):
 # LeaveAllocation
 # ---------------------------------------------------------------------------
 class LeaveAllocation(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     employee = models.ForeignKey(
         "accounts.User",
         on_delete=models.CASCADE,
@@ -67,7 +64,6 @@ class LeaveStatus(models.TextChoices):
 
 
 class LeaveRequest(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     employee = models.ForeignKey(
         "accounts.User",
         on_delete=models.CASCADE,

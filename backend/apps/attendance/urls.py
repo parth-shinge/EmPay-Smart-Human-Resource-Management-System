@@ -10,7 +10,7 @@ urlpatterns = [
     path("attendance/my/", views.MyAttendanceView.as_view(), name="my-attendance"),
     path("attendance/all/", views.AllAttendanceView.as_view(), name="all-attendance"),
     path(
-        "attendance/employee/<uuid:pk>/",
+        "attendance/employee/<int:pk>/",
         views.EmployeeAttendanceView.as_view(),
         name="employee-attendance",
     ),

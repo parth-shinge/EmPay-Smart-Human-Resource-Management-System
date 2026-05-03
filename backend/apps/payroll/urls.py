@@ -12,7 +12,7 @@ urlpatterns = [
         name="salary-structure-list",
     ),
     path(
-        "salary/structure/<uuid:pk>/",
+        "salary/structure/<int:pk>/",
         views.SalaryStructureDetailView.as_view(),
         name="salary-structure-detail",
     ),
@@ -23,12 +23,12 @@ urlpatterns = [
         name="payrun-list-create",
     ),
     path(
-        "payroll/payruns/<uuid:pk>/process/",
+        "payroll/payruns/<int:pk>/process/",
         views.PayrunProcessView.as_view(),
         name="payrun-process",
     ),
     path(
-        "payroll/payruns/<uuid:pk>/finalize/",
+        "payroll/payruns/<int:pk>/finalize/",
         views.PayrunFinalizeView.as_view(),
         name="payrun-finalize",
     ),
@@ -39,7 +39,7 @@ urlpatterns = [
         name="payslip-list",
     ),
     path(
-        "payroll/payslips/<uuid:pk>/",
+        "payroll/payslips/<int:pk>/",
         views.PayslipDetailView.as_view(),
         name="payslip-detail",
     ),

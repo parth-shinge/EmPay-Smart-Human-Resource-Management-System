@@ -20,7 +20,7 @@ urlpatterns = [
     # Employee management endpoints → /api/employees/
     path("api/employees/", EmployeeListCreateView.as_view(), name="employee-list-create"),
     path("api/employees/directory/", EmployeeDirectoryView.as_view(), name="employee-directory"),
-    path("api/employees/<uuid:pk>/", EmployeeDetailView.as_view(), name="employee-detail"),
+    path("api/employees/<int:pk>/", EmployeeDetailView.as_view(), name="employee-detail"),
     # Placeholder includes for other apps
     path("api/", include("apps.attendance.urls")),
     path("api/", include("apps.leave.urls")),

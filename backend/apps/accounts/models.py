@@ -1,5 +1,3 @@
-import uuid
-
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
@@ -8,7 +6,6 @@ from django.db import models
 # Organization
 # ---------------------------------------------------------------------------
 class Organization(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     address = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -62,7 +59,6 @@ class UserManager(BaseUserManager):
 # User Model (AbstractBaseUser + PermissionsMixin)
 # ---------------------------------------------------------------------------
 class User(AbstractBaseUser, PermissionsMixin):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(max_length=255, unique=True, db_index=True)
     name = models.CharField(max_length=255)
     role = models.CharField(

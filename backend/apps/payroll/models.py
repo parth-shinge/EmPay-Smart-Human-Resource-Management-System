@@ -1,4 +1,3 @@
-import uuid
 from decimal import Decimal
 
 from django.db import models
@@ -8,7 +7,6 @@ from django.db import models
 # SalaryStructure
 # ---------------------------------------------------------------------------
 class SalaryStructure(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     employee = models.OneToOneField(
         "accounts.User",
         on_delete=models.CASCADE,
@@ -40,7 +38,6 @@ class PayrunStatus(models.TextChoices):
 
 
 class Payrun(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organization = models.ForeignKey(
         "accounts.Organization",
         on_delete=models.CASCADE,
@@ -86,7 +83,6 @@ class PayslipStatus(models.TextChoices):
 
 
 class Payslip(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     payrun = models.ForeignKey(
         "Payrun",
         on_delete=models.CASCADE,

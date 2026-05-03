@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime, date
 from decimal import Decimal
 
@@ -13,7 +12,6 @@ class AttendanceStatus(models.TextChoices):
 
 
 class AttendanceRecord(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     employee = models.ForeignKey(
         "accounts.User",
         on_delete=models.CASCADE,
